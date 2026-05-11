@@ -1,12 +1,122 @@
-import { View, Text, TextInput, StyleSheet, Pressable } from "react-native";
-import React from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  StyleSheet,
+  Pressable,
+  Alert,
+  ToastAndroid,
+} from "react-native";
+import React, { use, useEffect, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Image } from "expo-image";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Link, router } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
+import * as SecureStore from "expo-secure-store";
+import * as Linking from "expo-linking";
+import Animated, {
+  useSharedValue,
+  withTiming,
+  withRepeat,
+  Easing,
+  useAnimatedStyle,
+} from "react-native-reanimated";
+import * as Google from "expo-auth-session/providers/google";
+import * as AuthSession from "expo-auth-session";
+import APP_URL from "../../ip.config";
+
+WebBrowser.maybeCompleteAuthSession();
 
 const SignIn = () => {
+  const [email, setEmail] = useState(null);
+  const [password, setPassword] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const rotation = useSharedValue(0);
+  const handleGoogleLogin = async () => {
+    const result = await WebBrowser.openAuthSessionAsync(
+      "https://rumbling-research-eel.ngrok-free.dev/auth/google",
+      "syncbeat://SignIn",
+    );
+    if (result.type === "success") {
+      const params = result.url;
+      const parseToken = Linking.parse(params)?.queryParams?.token;
+      await SecureStore.setItemAsync("token", parseToken);
+      ToastAndroid.show("Login successful", ToastAndroid.SHORT);
+      router.replace("/home");
+    } else if (result.type === "dismiss") {
+      Alert.alert("Error", "Login cancelled");
+    }
+  };
+
+  const handleFacebookLogin = async () => {
+    const result = await WebBrowser.openAuthSessionAsync(
+      "https://rumbling-research-eel.ngrok-free.dev/auth/facebook",
+      "syncbeat://SignIn",
+    );
+    if (result.type === "success") {
+      const params = result.url;
+      const parseToken = Linking.parse(params)?.queryParams?.token;
+      await SecureStore.setItemAsync("token", parseToken);
+      router.replace("/home");
+    } else if (result.type === "dismiss") {
+      Alert.alert("Error", "Login cancelled");
+    }
+  }
+  useEffect(() => {
+    if (loading) {
+      rotation.value = withRepeat(
+        withTiming(360, {
+          duration: 1000,
+          easing: Easing.linear,
+        }),
+        -1,
+      );
+    } else {
+      rotation.value = 0;
+    }
+  }, [loading]);
+
+  const animatedStyles = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${rotation.value}deg` }],
+  }));
+
+  const submitHandler = async () => {
+    setLoading(true);
+    if (!email?.trim() || !password?.trim()) {
+      setLoading(false);
+      Alert.alert("Error", "All fields are required");
+      return;
+    }
+    try {
+      const res = await fetch(`${APP_URL}/users/signin`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setLoading(false);
+        const token = data.data[0].token;
+        await SecureStore.setItemAsync("token", token);
+        router.replace("/home");
+      } else {
+        setLoading(false);
+        Alert.alert("Error", data.message);
+      }
+    } catch (error) {
+      setLoading(false);
+      Alert.alert("Error", "Something went wrong");
+    }
+  };
+
   return (
     <LinearGradient
       colors={["#0f2027", "#000000"]}
@@ -66,6 +176,8 @@ const SignIn = () => {
               placeholder="Enter your email address"
               placeholderTextColor="#aaa"
               inputMode="email"
+              value={email}
+              onChangeText={(text) => setEmail(text)}
             />
           </View>
 
@@ -86,16 +198,26 @@ const SignIn = () => {
               style={{ color: "#fff" }}
               placeholder="Enter your password"
               placeholderTextColor="#aaa"
-              secureTextEntry
+              secureTextEntry={!showPassword}
+              value={password}
+              onChangeText={(text) => setPassword(text)}
             />
-            <Pressable style={{ position: "absolute", right: 10 }}>
-              <MaterialIcons name="visibility" size={24} color="#aaa" />
+            <Pressable
+              style={{ position: "absolute", right: 10 }}
+              onPress={() => setShowPassword(!showPassword)}
+            >
+              <MaterialIcons
+                name={showPassword ? "visibility" : "visibility-off"}
+                size={24}
+                color="#aaa"
+              />
             </Pressable>
           </View>
 
           <Pressable
             style={{ alignItems: "flex-end", marginTop: 2 }}
             android_ripple="#00e5ff"
+            onPress={() => router.push("/forgot-password")}
           >
             <Text style={{ color: "#00e5ff", fontSize: 12 }}>
               Forgot Password?
@@ -111,10 +233,19 @@ const SignIn = () => {
               flexDirection: "row",
               justifyContent: "center",
               gap: 8,
+              opacity: loading ? 0.5 : 1,
             }}
+            onPress={submitHandler}
           >
-            <Text style={{ fontSize: 20, fontWeight: "bold" }}>Sign In</Text>
-            <MaterialIcons name="arrow-forward" size={24} />
+            <Text style={{ fontSize: 20, fontWeight: "bold" }}>
+              {loading ? "Signing In..." : "Sign In"}
+            </Text>
+            <Animated.View style={animatedStyles}>
+              <MaterialIcons
+                name={loading ? "sync" : "arrow-forward"}
+                size={24}
+              />
+            </Animated.View>
           </Pressable>
 
           {/* saparetor */}
@@ -159,6 +290,7 @@ const SignIn = () => {
                 paddingHorizontal: 16,
                 borderRadius: 8,
               }}
+              onPress={handleFacebookLogin}
             >
               <Image
                 source={require("../../assets/images/social-icons/facebook.png")}
@@ -177,6 +309,7 @@ const SignIn = () => {
                 paddingHorizontal: 16,
                 borderRadius: 8,
               }}
+              onPress={handleGoogleLogin}
             >
               <Image
                 source={require("../../assets/images/social-icons/google.png")}

@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "expo-app",
-    "slug": "expo-app",
+    "name": "SyncBeat",
+    "slug": "syncbeat",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "expoapp",
+    "scheme": "syncbeat",
     "userInterfaceStyle": "automatic",
     "backgroundColor": "#111111",
     "newArchEnabled": true,
@@ -43,7 +43,7 @@
         "android.permission.READ_MEDIA_VIDEO",
         "android.permission.READ_MEDIA_AUDIO"
       ],
-      "package": "com.ajoy974.expoapp"
+      "package": "com.ajoy974.syncbeat"
     },
     "web": {
       "output": "static",
@@ -68,7 +68,10 @@
         {
           "isAccessMediaLocationEnabled": true
         }
-      ]
+      ],
+      "expo-web-browser",
+      "expo-secure-store",
+      "expo-audio"
     ],
     "experiments": {
       "typedRoutes": true,
