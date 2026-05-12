@@ -5,7 +5,6 @@
 # SyncBeat
 
 Real-time synchronized music listening app built with React Native and Expo.
-
 Listen together. Stay connected.
 
 </div>

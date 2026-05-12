@@ -25,6 +25,19 @@ import { Dimensions } from "react-native";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const BAR_WIDTH = SCREEN_WIDTH - 40;
+
+/**
+ *
+ * @param {String} name
+ * @return {String}
+ */
+
+const cleanFileName = (name) => {
+  const nameWithoutExtension = name?.split(".").slice(0, -1).join(" ");
+  const cleanName = nameWithoutExtension?.replace(/[^a-zA-Z0-9\s]/g, " ");
+  return cleanName;
+};
+
 const Brodcast = () => {
   const [audioFiles, setAudioFiles] = useState([]);
   const [permission, setPermission] = useState(false);
@@ -40,7 +53,7 @@ const Brodcast = () => {
       setCurrentIndex(index);
 
       await player.replace({
-        uri: item.uri,
+        uri: item?.uri,
       });
       await player.play();
     } catch (error) {
@@ -153,6 +166,7 @@ const Brodcast = () => {
 
   const { roomid } = useLocalSearchParams();
   const [joined, setJoined] = useState(false);
+  const [totalActiveUser, setTotalActiveUser] = useState(0);
   const songData = {
     title: "Digital Hyperdrive",
     artist: "Ajoy Das",
@@ -177,6 +191,13 @@ const Brodcast = () => {
     };
   }, []);
 
+  const sendPlayEvent = () => {
+    socket.emit("play-song", {
+      roomId: roomid,
+      message:"playing song",
+    });
+  };
+
   useEffect(() => {
     const handleConnect = () => {
       socket.emit("join-room", roomid);
@@ -185,6 +206,13 @@ const Brodcast = () => {
     socket.on("user-joined", () => {
       setJoined(true);
     });
+    socket.on("room-user-count", (totalUser) => {
+      setTotalActiveUser(totalUser);
+    });
+    socket.on("playing-song", (data) => {
+      Alert.alert(JSON.stringify(data));
+    });
+
     if (!socket.connected) {
       socket.connect();
     } else {
@@ -194,6 +222,10 @@ const Brodcast = () => {
       socket.emit("leave-room", roomid);
     };
   }, []);
+
+
+
+
   useEffect(() => {
     let timeout;
     if (joined) {
@@ -390,7 +422,7 @@ const Brodcast = () => {
                     color: theme.colors.text,
                   }}
                 >
-                  120
+                  {totalActiveUser}
                 </Text>
               </View>
             </View>
@@ -452,16 +484,16 @@ const Brodcast = () => {
             >
               <Text
                 style={{
-                  fontSize: theme.headerFont.h1,
+                  fontSize: theme.headerFont.h3,
                   fontWeight: "bold",
                   color: theme.colors.text,
                 }}
               >
-                PlayList
+                Audio Queue
               </Text>
               <MaterialIcons
                 name="queue-music"
-                size={30}
+                size={24}
                 color={theme.colors.text}
               />
             </View>
@@ -485,7 +517,9 @@ const Brodcast = () => {
                   borderColor: theme.colors.primary,
                 }}
               >
-                <View style={{ flexDirection: "row", gap: 10, flex: 1 }}>
+                <View
+                  style={{ flexDirection: "row", gap: 10, flex: 1, padding: 5 }}
+                >
                   <Image
                     source={{
                       uri: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTOlvdUGXkoyTrqu4q8GzGt1qBZ1bo0368pfQ&s",
@@ -496,16 +530,17 @@ const Brodcast = () => {
                       borderRadius: theme.core.borderRadius,
                     }}
                   />
-                  <View style={{ flexDirection: "column", flex: 1 }}>
+                  <View style={{ flexDirection: "column", flex: 1, gap: 5 }}>
                     <Text
                       numberOfLines={1}
                       style={{
                         fontWeight: "bold",
                         fontSize: theme.headerFont.h5,
                         color: theme.colors.text,
+                        textTransform: "capitalize",
                       }}
                     >
-                      {item.filename ?? "Unknown Title"}
+                      {cleanFileName(item.filename) ?? "Unknown Title"}
                     </Text>
                     <Text
                       numberOfLines={1}
@@ -616,7 +651,7 @@ const Brodcast = () => {
             }}
             style={{
               width: BAR_WIDTH,
-              height: 20, 
+              height: 20,
               justifyContent: "center",
               alignItems: "center",
             }}
@@ -710,6 +745,7 @@ const Brodcast = () => {
             <TouchableOpacity
               onPress={() => {
                 playPauseSong();
+                sendPlayEvent();
               }}
               style={{
                 width: 80,
