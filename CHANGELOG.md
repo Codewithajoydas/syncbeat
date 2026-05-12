@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.4.0](https://github.com/Codewithajoydas/syncbeat/compare/v1.3.0...v1.4.0) (2026-05-12)
+
+
+### Features
+
+* **socket.js:** add support for secure token authentication using Expo Secure Store and custom auth callback to connect to the server with a valid token ([75a1aff](https://github.com/Codewithajoydas/syncbeat/commit/75a1affddfb79a643f39832bae96b8188a93ed60))
+
 ## 1.3.0 (2026-05-11)
 
 
